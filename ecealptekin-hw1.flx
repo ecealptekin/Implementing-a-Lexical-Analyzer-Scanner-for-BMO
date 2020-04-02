@@ -1,0 +1,743 @@
+%option noyywrap
+%{
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+int line=1;
+char *temp;
+char *temp1;
+char *temp2;
+char *temp3;
+char * RemoveLeadingZeros(char *str);
+char * PosReal(char *tmp);
+char * RemoveLeading(char *source, int startp, int endp);
+char * RemoveLast(char *source, int startp, int endp);
+char * concat(const char * first, const char * second);
+char * IntegerCase(char * half);
+char * RealCase(char * half, int pointindex);
+char * concatE(const char * first, const char * second); 
+char * PosInt(char *tmp); 
+char * NegInt(char *tmp); 
+char * NegReal(char *tmp); 
+char * controlfunction(char *tmp); 
+%}
+
+%x comment
+%%
+ 
+"//".*                    BEGIN(comment);
+<comment>"\n"             {BEGIN(INITIAL); line++; }
+<comment>                 {}
+\t                        {}
+[ \t]                     {}  
+","       		  printf("%d tCOMMA \n", line);           
+".*"     		  printf("%d tDOTPROD \n", line);       
+"("     		  printf("%d tLPAR \n", line);             
+")"     		  printf("%d tRPAR \n", line);            
+"="     		  printf("%d tASSIGNM \n", line);            
+"-"     		  printf("%d tMINUS \n", line);         
+"+"       	          printf("%d tPLUS \n", line);             
+"/"           		  printf("%d tDIV \n", line);              
+"*"          		  printf("%d tSTAR \n", line);              
+";"                       printf("%d tSEMI \n", line);           
+"=="                      printf("%d tEQUL \n", line);             
+"!="                      printf("%d tINEQ \n", line);        
+"<"                       printf("%d tLT \n", line);         
+"<="                      printf("%d tLE \n", line);            
+">"                       printf("%d tGT \n", line);        
+">="                      printf("%d tGE \n", line);          
+"["                       printf("%d tLBRAC \n", line);           
+"]"                       printf("%d tRBRAC \n", line);      
+"&&"                      printf("%d tAND \n", line);        
+"||"                      printf("%d tOR \n", line);                              
+"if"                      printf("%d tIF \n", line);                 
+"endif"                   printf("%d tENDIF \n", line);                    
+"vector"                  printf("%d tVECTOR \n", line);          
+"matrix"                  printf("%d tMATRIX \n", line);
+"transpose"               printf("%d tTRANSPOSE \n", line);                       
+[a-zA-Z_][a-zA-Z0-9_]*    printf("%d tIDENT (%s)\n",line,yytext);
+
+[0-9][0-9E_]+                                             {                                                         
+                                                          temp = PosInt(yytext);                                                  
+                                                          printf("%d tPOSINT (%s) (%s)\n",line,yytext,temp); 
+                                                          }
+[-][0-9][0-9E_]+                                          { 
+                                                          temp1 = NegInt(yytext);
+                                                          printf("%d tNEGINT (%s) (%s)\n",line,yytext,temp1); 
+                                                          }
+(([0-9])|([0-9]+.[0-9]+))([E]([0-9]+))?                   { 
+                                                          temp2 = PosReal(yytext);
+                                                          printf("%d POSREAL (%s) (%s)\n",line,yytext,temp2);                         
+                                                          }                                                        
+([-][0-9])|([-][0-9]+.[0-9]+)([E][-]([0-9]+))?            {       
+                                                          temp3 = NegReal(yytext);
+                                                          printf("%d tNEGREAL (%s) (%s)\n", line,yytext,temp3);
+                                                          }
+\n                        { line++; } 
+                    
+%%
+
+char * RemoveLeading(char *source, int startp, int endp)
+{
+  int size = endp+1;
+  char * firsthalf = malloc((size+1)*sizeof(char));
+  memcpy(firsthalf, source, size);
+  
+  int zeroindex = -1;
+  for(int i=0; i<strlen(firsthalf); i++)
+  {
+     if(firsthalf[i] != '0')
+     {
+      zeroindex = i;
+      break;
+     }
+  }
+   
+  if(zeroindex == -1) 
+  {
+    firsthalf = malloc((1)*sizeof(char));
+    firsthalf[0] = '0';
+    return firsthalf;
+  }
+
+  else if(zeroindex != -1)
+  {  
+     int sizenew = strlen(firsthalf) - zeroindex;
+     char * firstnew = malloc((sizenew)*sizeof(char));
+
+     for(int k=0; k< sizenew; k++)
+     {
+       firstnew[k] = firsthalf[zeroindex];
+       zeroindex++;
+     }
+    
+    return firstnew; 
+  }
+  
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+char * RemoveLast(char *source, int startp, int endp)
+{
+  int size = strlen(source)-startp+1;
+  char * lasthalf = malloc((size+1)*sizeof(char));
+
+  for(int i=0; i<size; i++)
+  {
+   lasthalf[i] = source[startp];
+   startp++;
+  }
+
+  char lastelm = lasthalf[strlen(lasthalf)-1];
+  
+
+  if(lastelm == '0')
+  {
+  char * reverse = malloc((size+1)*sizeof(char)); 
+  int lastelement = strlen(lasthalf)-1;
+  int store = lastelement;
+  for(int i=0; i<size; i++)
+  {
+    reverse[i] = lasthalf[lastelement];
+    lastelement--;
+  }
+   
+  reverse = RemoveLeading(reverse, 0, store);
+  
+  char * reverse2 = malloc((size+1)*sizeof(char));
+  int lastelement2 = strlen(reverse)-1;
+  int store2 = lastelement2;
+  for(int i=0; i<size; i++)
+  {
+    reverse2[i] = reverse[lastelement2];
+    lastelement2--;
+  }
+
+  return reverse2;
+  }
+
+
+  else if(lastelm != '0')
+  {
+  return lasthalf;
+  }
+
+}
+
+
+
+
+
+
+char * concat(const char * first, const char * second)  
+{
+  int lf = strlen(first);
+  int ls = strlen(second);
+  int len = lf+ls+1;
+  char * rb = malloc((len+1)*sizeof(char));
+  memcpy(rb, first, lf);
+  rb[lf] = '.';
+  memcpy(rb+lf+1, second, ls);
+  rb[len] = 0;
+  return rb;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+char * concatE(const char * first, const char * second)  
+{
+  int lf = strlen(first);
+  int ls = strlen(second);
+  int len = lf+ls+1;
+  char * rb = malloc((len+1)*sizeof(char));
+  memcpy(rb, first, lf);
+  rb[lf] = 'E';
+  memcpy(rb+lf+1, second, ls);
+  rb[len] = 0;
+  return rb;
+}
+
+
+
+
+
+
+
+
+
+
+char * IntegerCase(char * half)
+{
+  char * new = RemoveLeading(half, 0, strlen(half)-1);
+  return new;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+char * RealCase(char * half, int pointindex)
+{
+  int len = strlen(half);
+  char *first = malloc((pointindex)*sizeof(char));
+  first = RemoveLeading(half,0,pointindex-1);
+  char *last = malloc((len-(pointindex+1))*sizeof(char));
+  last = RemoveLast(half,pointindex+1, len-1); 
+  char *merged = concat(first,last);
+  return merged;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+char * PosReal(char *tmp)
+{
+
+   int len = strlen(tmp);
+   int Eindex = -1;
+
+   for(int i=0; i<len; i++) {
+    if(tmp[i] == 'E') { Eindex = i; break; }
+   }
+   
+   if(Eindex == -1) {  
+
+     int pointindex = -1;
+     for(int j=0; j<len; j++) { 
+     if(tmp[j] == '.') { pointindex = j; break; }
+     }
+
+     tmp = RealCase(tmp, pointindex);
+     return tmp;
+   }
+   
+
+   else if(Eindex != -1) {
+
+     char * onehalf = malloc((Eindex)*sizeof(char));
+     for(int j=0; j<Eindex; j++)
+     {
+      onehalf[j] = tmp[j];
+     }
+   
+     int onepoint = -1;
+     for(int j=0; j<strlen(onehalf); j++) { 
+     if(onehalf[j] == '.') { onepoint = j; break; }
+     }
+
+     if(onepoint == -1) {
+     onehalf = IntegerCase(onehalf);
+     }
+
+     else if(onepoint != -1) {
+     onehalf = RealCase(onehalf,onepoint);
+     }
+              
+     int len1 = len - Eindex - 1;
+     char *secondhalf = malloc((len1)*sizeof(char));
+     
+     int str = Eindex+1;
+     for(int i=0; i<len1; i++)
+     {
+      secondhalf[i] = tmp[str];
+      str++;
+     }
+
+     int secondpoint = -1;
+     for(int j=0; j<strlen(secondhalf); j++) { 
+     if(secondhalf[j] == '.') { secondpoint = j; break; }
+     }
+
+     if(secondpoint == -1) {
+     secondhalf = IntegerCase(secondhalf);
+     }
+
+     else if(secondpoint != -1) {
+     secondhalf = RealCase(secondhalf,secondpoint);
+     }
+   
+     char * merge = concatE(onehalf, secondhalf);
+     return merge; 
+     }
+}
+
+
+
+
+char * NegReal(char *tmp)
+{
+   int len = strlen(tmp);
+   int Eindex = -1;
+
+   for(int i=0; i<len; i++) {
+    if(tmp[i] == 'E') { Eindex = i; break; }
+   }
+   
+   if(Eindex == -1) {  
+    
+     char * storetmp = malloc((len-1)*sizeof(char));
+     int ai = strlen(tmp);
+     int b=1;
+     for(int a=0; a<ai; a++) {
+      storetmp[a] = tmp[b];
+      b++;
+     }
+     
+     int pointindex = -1;
+     int bi = strlen(storetmp);
+     for(int j=0; j<bi; j++) { 
+     if(storetmp[j] == '.') { pointindex = j; break; } 
+     }
+
+     storetmp = RealCase(storetmp, pointindex);
+     
+     int c = strlen(storetmp) + 1;
+     char * resulttmp = malloc((c)*sizeof(char));
+     resulttmp[0] = '-';
+
+     int f=1;
+     int ci = strlen(storetmp);
+     for(int e=0; e<ci; e++) {
+        resulttmp[f] = storetmp[e];
+        f++;
+     }
+
+     return resulttmp;
+    }   
+
+   else if(Eindex != -1) {
+     
+     char * onehalf = malloc((Eindex)*sizeof(char));
+     int di = Eindex;
+     for(int j=0; j<di; j++){ 
+       onehalf[j] = tmp[j]; 
+     }
+   
+
+     int onepoint = -1;
+     for(int j=0; j<di; j++) { 
+     if(onehalf[j] == '.') { onepoint = j; break; }
+     }
+
+
+     if(onepoint == -1) 
+     {
+     
+     int r = strlen(onehalf);
+     char * t = malloc((r-1)*sizeof(char));
+     int y = 1;
+     int fi = strlen(onehalf);
+     for(int j=0; j<fi; j++)
+     {
+      t[j] = onehalf[y];
+      y++;
+     } 
+     
+     t = IntegerCase(t);
+     int b = strlen(t) + 1;
+     char * s = malloc((b)*sizeof(char));
+     s[0] = '-';
+     
+     int z = 1;
+     int hi = strlen(t);
+     for(int j=0; j<hi; j++)
+     {
+      s[z] = t[j];
+      z++;
+     } 
+
+     onehalf = s;
+     }
+
+    
+     else if(onepoint != -1) {
+
+     int p = strlen(onehalf); 
+     char * t = malloc((p-1)*sizeof(char));
+     int b = 1;
+     int k = strlen(onehalf);
+     for(int a=0; a<k; a++) {
+      t[a] = onehalf[b];
+      b++;
+     }
+   
+     int onepointindex = -1;
+     int ab = strlen(t);
+     for(int j=0; j<ab; j++) { 
+     if(t[j] == '.') { onepointindex = j; break; }
+     }
+
+     t = RealCase(t, onepointindex);
+     int c = strlen(t) +1;
+     char * result = malloc((c)*sizeof(char));
+     result[0] = '-';
+
+     int f = 1;
+     int abc = strlen(t);
+     for(int e=0; e<abc; e++) {
+        result[f] = t[e];
+        f++;
+     }
+
+     onehalf = result;
+     }
+              
+     
+     int len1 = len - Eindex - 1;
+     char * secondhalf = malloc((len1)*sizeof(char));  
+     int str = Eindex+1;
+     for(int i=0; i<len1; i++)
+     {
+      secondhalf[i] = tmp[str];
+      str++;
+     }
+     
+     
+     int secondpoint = -1;
+     int abcd = strlen(secondhalf);
+     for(int j=0; j<abcd; j++) { 
+     if(secondhalf[j] == '.') { secondpoint = j; break; }
+     }
+
+
+     if(secondpoint == -1) {
+     int r = strlen(secondhalf);
+     char * t = malloc((r-1)*sizeof(char));
+     int y = 1;
+     int abcde = strlen(tmp);
+     for(int j=0; j<abcde; j++)
+     {
+      t[j] = secondhalf[y];
+      y++;
+     } 
+     
+     t = IntegerCase(t);
+     int b = strlen(t) + 1;
+     char * s = malloc((b)*sizeof(char));
+     s[0] = '-';
+     
+     int z = 1;
+     int abf = strlen(t);
+     for(int j=0; j<abf; j++)
+     {
+      s[z] = t[j];
+      z++;
+     } 
+
+     secondhalf = s;
+     }
+
+
+     else if(secondpoint != -1) {
+     
+     int p = strlen(secondhalf); 
+     char * t = malloc((p-1)*sizeof(char));
+     int b=1;
+     int adk = strlen(secondhalf);
+     for(int a=0; a<adk; a++) {
+      t[a] = secondhalf[b];
+      b++;
+     }
+   
+     int secondpointindex = -1;
+     int ack = strlen(t);
+     for(int j=0; j<ack; j++) { 
+     if(t[j] == '.') { secondpointindex = j; break; }
+     }
+
+     t = RealCase(t, secondpointindex);
+     int c = strlen(t) +1;
+     char * result = malloc((c)*sizeof(char));
+     result[0] = '-';
+
+     int f=1;
+     int odk = strlen(t);
+     for(int e=0; e<odk; e++) {
+        result[f] = t[e];
+        f++;
+     }
+
+     secondhalf = result;
+     }
+
+    
+     char * merge = concatE(onehalf, secondhalf);
+     return merge; 
+     }
+} 
+
+
+
+
+
+
+
+
+
+
+
+
+
+char * PosInt(char *tmp)
+{
+   int len = strlen(tmp);
+   int Eindex = -1;
+
+   for(int i=0; i<len; i++) {
+    if(tmp[i] == 'E') { Eindex = i; break; }
+   }
+   
+   if(Eindex == -1) {  
+    tmp = RemoveLeading(tmp, 0, len-1);
+    return tmp;
+   }
+   
+   else if(Eindex != -1) {
+
+     char * onehalf = malloc((Eindex)*sizeof(char));
+     for(int j=0; j<Eindex; j++)
+     {
+      onehalf[j] = tmp[j];
+     }
+      
+     onehalf = IntegerCase(onehalf);
+       
+     int len1 = len - Eindex - 1;
+     char *secondhalf = malloc((len1)*sizeof(char));
+     int str = Eindex+1;
+     for(int i=0; i<len1; i++)
+     {
+      secondhalf[i] = tmp[str];
+      str++;
+     }
+
+     secondhalf = IntegerCase(secondhalf);
+   
+     char * merge = concatE(onehalf, secondhalf);
+     return merge; 
+     }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+char * NegInt(char *tmp)
+{
+   int len = strlen(tmp);
+   int Eindex = -1;
+
+   for(int i=0; i<len; i++) {
+    if(tmp[i] == 'E') { Eindex = i; break; }
+   }
+   
+   if(Eindex == -1) {  
+     int si = len -1;
+     char * t = malloc((len-1)*sizeof(char));
+     int y = 1;
+     for(int j=0; j<si; j++)
+     {
+      t[j] = tmp[y];
+      y++;
+     } 
+     
+     t = IntegerCase(t);
+     int b = strlen(t) + 1;
+     char * s = malloc((b)*sizeof(char));
+     s[0] = '-';
+     
+     int z = 1;
+     for(int j=0; j<strlen(s); j++)
+     {
+      s[z] = t[j];
+      z++;
+     } 
+     
+     return s;
+   }
+   
+   else if(Eindex != -1) {   
+
+     char * onehalf = malloc((Eindex)*sizeof(char));
+     int bi = Eindex;
+     for(int j=0; j<bi; j++)
+     {
+      onehalf[j] = tmp[j];
+     }
+
+     int ci = Eindex-1;
+     char * storeonehalf = malloc((ci)*sizeof(char));
+     int s = 1;
+     for(int j=0; j<ci; j++)
+     {
+      storeonehalf[j] = onehalf[s];
+      s++;
+     } 
+     
+     storeonehalf = IntegerCase(storeonehalf);
+     int a = strlen(storeonehalf) + 1;
+     char * resultonehalf = malloc((a)*sizeof(char));
+     resultonehalf[0] = '-';
+     
+    
+     int di = strlen(storeonehalf);
+     int w = 1;
+     for(int j=0; j<di; j++)
+     {
+      resultonehalf[w] = storeonehalf[j];
+      w++;
+     }         
+     
+     
+     int len1 = len - Eindex - 1;
+     char * secondhalf = malloc((len1)*sizeof(char));
+     int str = Eindex+1;
+     for(int x=0; x<len1; x++)
+     {
+      secondhalf[x] = tmp[str];
+      str++;
+     }
+     
+      
+
+     int ei = len1;
+     int ki = strlen(secondhalf);
+     char * storesecondhalf = malloc((ei)*sizeof(char));
+     
+    
+     int y = 1;
+     for(int j=0; j<ki; j++)
+     {
+      storesecondhalf[j] = secondhalf[y];
+      y++;
+     } 
+      
+     
+     storesecondhalf = IntegerCase(storesecondhalf);
+     int b = strlen(storesecondhalf) + 1;
+     char * resultsecondhalf = malloc((b)*sizeof(char));
+     resultsecondhalf[0] = '-';
+     
+     
+       
+     int z = 1;
+     int fi = strlen(storesecondhalf);
+     for(int j=0; j<fi; j++)
+     {
+      resultsecondhalf[z] = storesecondhalf[j];
+      z++;
+     } 
+    
+    
+     char * merge = concatE(resultonehalf, resultsecondhalf);
+     return merge;
+     }
+}
+
+
+
+
+
+
+
+
+
+
+int main(){
+yylex();
+}
+
+
+
+
+
+
+
+
+
